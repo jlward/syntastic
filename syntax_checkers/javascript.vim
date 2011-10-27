@@ -15,12 +15,33 @@ endif
 let loaded_javascript_syntax_checker = 1
 
 "bail if the user doesnt have jsl installed
-if !executable("jsl")
+if executable("jsl")
+
+    function! SyntaxCheckers_javascript_GetLocList()
+        let makeprg = "jsl -nologo -nofilelisting -nosummary -nocontext -process ".shellescape(expand('%'))
+        let errorformat='%W%f(%l): lint warning: %m,%-Z%p^,%W%f(%l): warning: %m,%-Z%p^,%E%f(%l): SyntaxError: %m,%-Z%p^,%-G'
+        return SyntasticMake({ 'makeprg': makeprg, 'errorformat': errorformat })
+    endfunction
+    " We're using node jsl, finished.
     finish
 endif
 
-function! SyntaxCheckers_javascript_GetLocList()
-    let makeprg = "jsl -nologo -nofilelisting -nosummary -nocontext -process ".shellescape(expand('%'))
-    let errorformat='%W%f(%l): lint warning: %m,%-Z%p^,%W%f(%l): warning: %m,%-Z%p^,%E%f(%l): SyntaxError: %m,%-Z%p^,%-G'
-    return SyntasticMake({ 'makeprg': makeprg, 'errorformat': errorformat })
-endfunction
+" Use node jslint if the user has it installed
+if executable("jslint")
+    if !exists("g:syntastic_jslint_conf")
+        let g:syntastic_jslint_conf = ""
+    endif
+
+    function! SyntaxCheckers_javascript_GetLocList()
+        if empty(g:syntastic_jslint_conf)
+            let jslintconf = ""
+        else
+            let jslintconf = g:syntastic_jslint_conf
+        endif
+        let makeprg = "jslint" . jslintconf . " " . shellescape(expand('%'))
+        let errorformat='%-P%f,%*[ ]%n %l\,%c: %m,%-G%.%#'
+        return SyntasticMake({ 'makeprg': makeprg, 'errorformat': errorformat })
+    endfunction
+    " We're using node jslint, finished.
+    finish
+endif
